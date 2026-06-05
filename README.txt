@@ -33,5 +33,5 @@ A professional, web-based YouTube video downloader with multiple quality options
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/TDownTloader.git
+git clone https://github.com/Tharu002/TDownTloader.git
 cd TDownTloader
