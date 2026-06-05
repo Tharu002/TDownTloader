@@ -12,9 +12,24 @@ A professional, web-based YouTube video downloader with multiple quality options
 - 💾 **Auto-Save** - Videos saved locally
 - 🚀 **Real-time Status** - Live download progress
 
-## 📸 Screenshots
+## 📸 How it works?
 
-![TDownTloader Screenshot](screenshot.png)
+Step 1: Go to Youtube and Copy the URL that you want to download.
+https://github.com/Tharu002/TDownTloader/blob/main/SS/01.png
+
+Step 2: The copied URL, paste into this box.
+https://github.com/Tharu002/TDownTloader/blob/main/SS/02.png
+
+Step 3: Like this you can paste your URL in this box.
+https://github.com/Tharu002/TDownTloader/blob/main/SS/03.png
+
+Step 4: **Very important note: Special to remove these part into URL before downloading the vodeo**
+https://github.com/Tharu002/TDownTloader/blob/main/SS/04.png
+
+Step 5: After that you can choose whatever you want to download quality about the video and download it.
+https://github.com/Tharu002/TDownTloader/blob/main/SS/05.png
+
+Step 6: Enjoy my downloader!!
 
 ## 🛠️ Tech Stack
 
