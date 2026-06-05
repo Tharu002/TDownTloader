@@ -9,7 +9,7 @@ import tempfile
 app = Flask(__name__)
 CORS(app)
 
-# Use temporary directory for Vercel
+# Use temporary directory for downloads
 DOWNLOAD_FOLDER = tempfile.mkdtemp()
 
 def download_video(url, quality):
@@ -26,12 +26,16 @@ def download_video(url, quality):
         
         format_option = quality_map.get(quality, 'best[ext=mp4]')
         
+        # Generate unique filename
+        unique_id = str(uuid.uuid4())[:8]
+        
         ydl_opts = {
-            'outtmpl': f'{DOWNLOAD_FOLDER}/video.%(ext)s',
+            'outtmpl': f'{DOWNLOAD_FOLDER}/video_{unique_id}.%(ext)s',
             'format': format_option,
             'noplaylist': True,
             'quiet': True,
             'no_warnings': True,
+            'ignoreerrors': True,
         }
         
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -41,13 +45,20 @@ def download_video(url, quality):
             if not os.path.exists(filename):
                 filename = filename.rsplit('.', 1)[0] + '.mp4'
             
+            if not os.path.exists(filename):
+                # Try to find any video file
+                for f in os.listdir(DOWNLOAD_FOLDER):
+                    if f.endswith('.mp4') or f.endswith('.webm'):
+                        filename = os.path.join(DOWNLOAD_FOLDER, f)
+                        break
+            
             return filename, info.get('title', 'video')
+            
     except Exception as e:
-        raise Exception(str(e))
+        raise Exception(f"Download failed: {str(e)}")
 
-# HTML Template (same as before - simplified)
-HTML_TEMPLATE = '''
-<!DOCTYPE html>
+# HTML Template
+HTML_TEMPLATE = '''<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -123,6 +134,7 @@ HTML_TEMPLATE = '''
             cursor: pointer;
             transition: all 0.3s;
             font-weight: 600;
+            color: rgba(255,255,255,0.7);
         }
         .quality-card input:checked + label {
             background: linear-gradient(135deg, rgba(255,0,0,0.3), rgba(139,92,246,0.3));
@@ -152,7 +164,7 @@ HTML_TEMPLATE = '''
             border-left: 4px solid #ff0000;
         }
         .status-message { color: rgba(255,255,255,0.9); margin-bottom: 8px; }
-        .status-detail { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+        .status-detail { color: rgba(255,255,255,0.5); font-size: 0.8rem; word-break: break-word; }
         .features {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -186,6 +198,8 @@ HTML_TEMPLATE = '''
         @media (max-width: 768px) {
             .quality-grid { grid-template-columns: repeat(2, 1fr); }
             .features { grid-template-columns: repeat(2, 1fr); }
+            .header, .content { padding: 25px; }
+            h1 { font-size: 1.8rem; }
         }
     </style>
 </head>
@@ -243,9 +257,14 @@ HTML_TEMPLATE = '''
                 return;
             }
             
+            if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+                updateStatus('❌ Invalid YouTube URL', 'Please enter a valid YouTube link');
+                return;
+            }
+            
             downloadBtn.disabled = true;
             downloadBtn.innerHTML = '<div class="spinner"></div> Processing...';
-            updateStatus('⏳ Processing...', 'Downloading video, please wait...');
+            updateStatus('⏳ Processing...', 'Downloading video, please wait (30-60 seconds)...');
             
             try {
                 const response = await fetch('/api/download', {
@@ -280,8 +299,7 @@ HTML_TEMPLATE = '''
         });
     </script>
 </body>
-</html>
-'''
+</html>'''
 
 @app.route('/')
 def index():
@@ -299,11 +317,14 @@ def api_download():
         
         filename, title = download_video(url, quality)
         
-        return jsonify({
-            'success': True,
-            'download_url': f'/api/download_file/{os.path.basename(filename)}',
-            'filename': os.path.basename(filename)
-        })
+        if os.path.exists(filename):
+            return jsonify({
+                'success': True,
+                'download_url': f'/api/download_file/{os.path.basename(filename)}'
+            })
+        else:
+            return jsonify({'error': 'File not found'}), 500
+            
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -311,10 +332,10 @@ def api_download():
 def download_file(filename):
     filepath = os.path.join(DOWNLOAD_FOLDER, filename)
     if os.path.exists(filepath):
-        return send_file(filepath, as_attachment=True)
+        return send_file(filepath, as_attachment=True, download_name=filename)
     return jsonify({'error': 'File not found'}), 404
 
-# Vercel requires this
+# This is for Vercel
 app = app
 
 if __name__ == '__main__':
